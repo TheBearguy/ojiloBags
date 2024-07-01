@@ -2,7 +2,7 @@ import { Schema, mongo } from "mongoose";
 import mongoose from "mongoose";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-const userSchema = new Schema(
+const ownerSchema = new Schema(
     {
         username: {
             type: String, 
@@ -42,18 +42,7 @@ const userSchema = new Schema(
         profilePicture: {
             type: String, 
         }, 
-        address: {
-            type: String, 
-            required: [true, 'Please enter your address'], 
-            trim: true
-        },
-        cart: [
-            {
-                type: Schema.Types.ObjectId, 
-                ref: 'Product'
-            }
-        ], 
-        orderHistory: [
+        productsAdded: [
             {
                 type: Schema.Types.ObjectId, 
                 ref: 'Product'
@@ -62,7 +51,7 @@ const userSchema = new Schema(
     }
 )
 
-userSchema.pre('save', async function (next) {
+ownerSchema.pre('save', async function (next) {
     if (!this.isModified("password")) {
         return next();
     }
@@ -70,11 +59,11 @@ userSchema.pre('save', async function (next) {
     next();
 })
 
-userSchema.methods.isPasswordCorrect = async function (password) {
+ownerSchema.methods.isPasswordCorrect = async function (password) {
     return await bcrypt.compare(password, this.password)
 }
 
-userSchema.methods.generateAccessToken = async function () {
+ownerSchema.methods.generateAccessToken = async function () {
     jwt.sign(
         {
             // payload
@@ -90,7 +79,7 @@ userSchema.methods.generateAccessToken = async function () {
     )
 } 
 
-userSchema.methods.generateRefreshToken = async function () {
+ownerSchema.methods.generateRefreshToken = async function () {
     jwt.sign(
         {
             //payload
@@ -103,4 +92,4 @@ userSchema.methods.generateRefreshToken = async function () {
     )
 }
 
-export const User = mongoose.model("User", userSchema)
+export const Owner = mongoose.model("Owner", ownerSchema)
