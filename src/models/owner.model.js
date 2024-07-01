@@ -92,4 +92,7 @@ ownerSchema.methods.generateRefreshToken = async function () {
     )
 }
 
-export const Owner = mongoose.model("Owner", ownerSchema)
+export const Owner = mongoose.model("OwnuserSchema
+userSchema
+userSchema
+userSchemaer", ownerSchema)
