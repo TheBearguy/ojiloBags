@@ -42,6 +42,10 @@ const userSchema = new Schema(
         profilePicture: {
             type: String, 
         }, 
+        role: {
+            type: String, 
+            default: "user"
+        },
         address: {
             type: String, 
             required: [true, 'Please enter your address'], 
@@ -68,6 +72,15 @@ userSchema.pre('save', async function (next) {
     }
     this.password = await bcrypt.hashSync(this.password, 10);
     next();
+})
+
+userSchema.pre("remove", async function (next) {
+    this.model('Review').deleteMany(
+        {
+            user: this._id
+        }
+    )
+    this.model("Order")
 })
 
 userSchema.methods.isPasswordCorrect = async function (password) {
