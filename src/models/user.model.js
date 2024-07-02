@@ -77,10 +77,14 @@ userSchema.pre('save', async function (next) {
 userSchema.pre("remove", async function (next) {
     this.model('Review').deleteMany(
         {
-            user: this._id
+            userId: this._id
         }
     )
-    this.model("Order")
+    this.model("Order").deleteMany(
+        {
+            userId: this._id
+        }
+    )
 })
 
 userSchema.methods.isPasswordCorrect = async function (password) {

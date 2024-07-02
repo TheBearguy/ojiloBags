@@ -19,12 +19,12 @@ const reviewSchema = new Schema({
         max: 5, 
         required: [true, "Please rate the product between 1 and 5"], 
     }, 
-    user: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId, 
         ref: "User", 
         required: true
     },
-    product: {
+    productId: {
         type: mongoose.Schema.Types.ObjectId, 
         ref: "Product", 
         requried: true
@@ -33,11 +33,11 @@ const reviewSchema = new Schema({
 
 // Use method on individual documents if you want to manipulate the individual document like adding tokens etc. Use the statics approach if you want to query the whole collection.
 
-reviewSchema.statics.getRating = async function (product) {
+reviewSchema.statics.getRating = async function (productId) {
     const ratingObj = await this.aggregate[
         {
             $match: {
-                productId: product
+                productId: productId
             }
         }, 
         {
@@ -64,11 +64,11 @@ reviewSchema.statics.getRating = async function (product) {
 }
 
 reviewSchema.post("save", async function () {
-    this.constructor.getRating(this.product)
+    this.constructor.getRating(this.productId)
 });
 
 reviewSchema.pre("remove", async function () {
-    this.constructor.getRating(this.product)
+    this.constructor.getRating(this.productId)
 });
 
 export const Review = mongoose.model("Review", reviewSchema)
