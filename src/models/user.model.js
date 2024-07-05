@@ -1,9 +1,14 @@
 import { Schema, mongo } from "mongoose";
 import mongoose from "mongoose";
 import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
+import jwt, { verify } from 'jsonwebtoken'
+import crypto from "crypto"
+
 const userSchema = new Schema(
     {
+        uid: {
+            type: String
+        },
         username: {
             type: String, 
             required: [true, 'Please enter your username'], 
@@ -65,6 +70,10 @@ const userSchema = new Schema(
         ], 
         refreshToken: {
             type: String,
+        }, 
+        verify: {
+            type: Boolean, 
+            default: false
         }
     }
 )
@@ -122,5 +131,16 @@ userSchema.methods.generateRefreshToken = async function () {
         }
     )
 }
+
+userSchema.methods.getResetPasswordToken = async function () {
+    const resetToken = crypto.randomBytes(20).toString('hex');
+    this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+    this.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+    return resetToken;
+}
+    
 
 export const User = mongoose.model("User", userSchema)

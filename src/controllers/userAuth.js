@@ -4,6 +4,8 @@ import {ApiResponse} from '../utils/ApiResponse.js';
 import { User } from '../models/user.model.js';
 import {uploadOnFirebaseStorageBucket, deleteFromFirebaseStorageBucket} from '../config/firebase.js';
 import jwt from 'jsonwebtoken';
+import verifyEmail from '../utils/email.js';
+import cron from "node-cron";
 
 
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -95,6 +97,59 @@ const registerUser = asyncHandler(async (req, res, next) => {
     )
 })
 
+const registerUserViaCode = asyncHandler(async (req, res, next) => {
+    let uid = ""
+    let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    let charactersLength = characters.length
+    for (let i = 0; i < 6; i++) {
+        uid += characters.charAt(Math.floor(Math.random() * charactersLength))
+    }
+    const newUser = await User.create({
+        ...req.body, 
+        uid: uid
+    });
+    try {
+        const options =  {
+            email: newUser.email, 
+            subject: "Account Verification",
+            code: uid, 
+            name: newUser.fullName
+        }
+        await verifyEmail(options)
+        
+        let job = cron.schedule(
+            "59 * * * *",
+            async () => {
+                try {
+                    const user1 = await User.findOne({
+                        email: newUser.email
+                    });
+                    if (user1.verify === false) {
+                        try {
+                            await User.findOneAndDelete({
+                              email: user1.email,
+                            });
+                          } catch (er) {
+                            console.log(er);
+                          }
+                        }
+                } catch (error) {
+                    console.log(error);
+                }
+            },
+            {scheduled: false}
+        );
+        job.start();
+        res.status(200)
+        .json(
+            200, 
+            "Verification code sent successfully",
+        )
+    } catch (error) {
+        throw new ApiError(500, "Verification code not sent")
+    }
+});
+
 const loginUser = asyncHandler(async (req,res, next) => {
     // get the data from the user (frontend)
     // authenticate user details (username and password) (check if user exists)
@@ -141,6 +196,30 @@ const loginUser = asyncHandler(async (req,res, next) => {
     .json( new ApiResponse(200, "User logged in successfully", loggedInUser))
 })
 
+const verificationEmail = asyncHandler(async (req, res, next) => {
+    const uid = req.body.verificationCode;
+    const user = User.findOne({
+        uid: uid
+    });
+    if (!user) {
+        throw new ApiError(
+            400,
+            "Invalid verification code"
+        )
+    }
+    user.verify = true;
+    await user.save({
+        validateBeforeSave: false
+    });
+    res.status(200).json(
+        new ApiResponse(
+            200,
+            "User verified successfully",
+            user
+        )
+    )
+})
+
 const logoutUser = asyncHandler(async (req, res, next) => {
     // clear the cookies
     // return response to the frontend
@@ -163,6 +242,73 @@ const logoutUser = asyncHandler(async (req, res, next) => {
     .clearCookie("refreshToken")
     .json(new ApiResponse(200, {} ,"User logged out successfully"))
 })
+
+const forgotPassword = asyncHandler(async (req, res, next) => {
+    const user = await User.findOne({ email: req.body.email });
+  
+    if (!user)
+      throw createError(400, `User with email ${req.body.email} is not found`);
+  
+    const resetToken = user.getResetPasswordToken();
+  
+    await user.save({ validateBeforeSave: false });
+  
+    try {
+      const resetUrl = `http:localhost:8000/api/v1/users/reset-password/?token=${resetToken}`;
+  
+      const message = `You are receiving this email because you (or someone else ) has
+      requested the reset of a password.`;
+  
+      const options = {
+        email: user.email,
+        subject: "Password reset token",
+        message,
+        url: resetUrl,
+      };
+  
+      await sendEmail(options);
+  
+      res
+        .status(200)
+        .send({ status: "success", message: "ResetPassword token Email sent" });
+    } catch (error) {
+      console.log(error);
+  
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+  
+      await user.save({ validateBeforeSave: false });
+  
+      throw createError(500, "Email cound't be sent");
+    }
+  });
+
+// const resetPassword = asyncHandler(async (req, res, next) => {
+//   //Hash the resetToken
+
+//   const resetToken = crypto
+//     .createHash("sha256")
+//     .update(req.body.token)
+//     .digest("hex");
+
+//   const user = await User.findOne({
+//     resetPasswordToken: resetToken,
+//     resetPasswordExpire: { $gt: Date.now() },
+//   });
+
+//   if (!user) throw createError(400, `Invalid token ${req.body.token}`);
+
+//   user.password = req.body.newPassword;
+//   user.resetPasswordToken = undefined;
+//   user.resetPasswordExpire = undefined;
+
+//   await user.save();
+
+//   res
+//     .status(200)
+//     .send({ status: "success", message: "Your Password has beed changed" });
+// });
+
 
 const refreshAccessToken = asyncHandler(async (req,res, next) => {
     // get the refresh token from the request
@@ -309,13 +455,19 @@ const updateProfilePicture = asyncHandler(async(req,res, next) => {
     )
 })
 
+const getUserProfile = asyncHandler(async (req, res, next) => {
+    // username, email, profilepicture, orderhistory, cart, 
+})
+
 export {
     registerUser, 
+    registerUserViaCode,
     loginUser, 
     logoutUser, 
     refreshAccessToken, 
     changeCurrentPassword, 
     getCurrentUser, 
     updateAccountDetails, 
-    updateProfilePicture
+    updateProfilePicture, 
+    forgotPassword
 }
