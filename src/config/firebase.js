@@ -2,11 +2,13 @@
 import { log } from "console";
 import admin from "firebase-admin"
 import fs from 'fs'
-import { ApiError } from "../utils/ApiError";
+import { ApiError } from "../utils/ApiError.js";
 
-const { FieldPath, AggregateQuerySnapshot } = require("firebase-admin/firestore");
+// const { FieldPath, AggregateQuerySnapshot } = require("firebase-admin/firestore");
+import { FieldPath, AggregateQuerySnapshot } from "firebase-admin/firestore";
 
-var serviceAccount = require("../utils/serviceAccountKey.json");
+// var serviceAccount = require("../utils/serviceAccountKey.json");
+import serviceAccount from "../utils/serviceAccountKey.json" with {type: "json"};
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),

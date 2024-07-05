@@ -28,6 +28,10 @@ app.use(express.static('public'))
 // http://localhost:8000/api/v1/users
 
 // app.use('/api/v1/users', require('./routes/userRoutes'));
+import userRoutes from './routes/user.routes.js';
+
+
+app.use('/api/v1/users', userRoutes);
 
 export {
     app

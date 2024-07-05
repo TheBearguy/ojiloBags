@@ -1,25 +1,27 @@
 import {asyncHandler} from '../utils/asyncHandler.js';
 import { ApiError} from '../utils/ApiError.js';
 import {ApiResponse} from '../utils/ApiResponse.js';
-import { User } from '../models/User.js';
+import { User } from '../models/user.model.js';
 import {uploadOnFirebaseStorageBucket, deleteFromFirebaseStorageBucket} from '../config/firebase.js';
 import jwt from 'jsonwebtoken';
 
 
-const generateAccessAndRefreshToken = async (userId) => {
+const generateAccessAndRefreshTokens = async (userId) => {
     try {
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new ApiError(400, "User not found")
-        }
-        const accessToken  = await user.generateAccessToken();
+        const user = await User.findById(userId)
+        const accessToken = await user.generateAccessToken();
         const refreshToken = await user.generateRefreshToken();
+
+
         user.refreshToken = refreshToken;
-        user.save( { validateBeforeSave: false } );
+        await user.save( { validateBeforeSave: false } )
+
+        return {accessToken, refreshToken}
+
     } catch (error) {
         throw new ApiError(500, error.message)
     }
-}
+} 
 
 const registerUser = asyncHandler(async (req, res, next) => {
     // 0. get user data from frontend
@@ -31,9 +33,9 @@ const registerUser = asyncHandler(async (req, res, next) => {
     // Do not pass password and refreshToken to the user = remove them from the response
     // check for user creation (if it is created successfullly)
     // 3. return response to the frontend
-    const {fullName, username, email, password, } = req.body
+    const {fullName, username, email, password, address, contactNumber } = req.body
 
-    if ([fullName, username, email, password].some((fields) => {return fields?.trim === ""})) {
+    if ([fullName, username, email, password, address, contactNumber].some((fields) => {return fields?.trim === ""})) {
         throw new ApiError(400, "Please fill all fields")
     }
 
@@ -49,34 +51,35 @@ const registerUser = asyncHandler(async (req, res, next) => {
     if (existedUser) {
         throw new ApiError(400, "User already exists")
     }
-
-    const profilePictureLocalPath = req.files?.profilePicture[0].path
-    
+    console.log(req.body);
+    console.log(req.file);
+    const profilePictureLocalPath = req.file?.path
+    console.log(profilePictureLocalPath);
     if (!profilePictureLocalPath) {
         throw new ApiError(400, "Please upload a profile picture")
     } 
 
-    const profilePictureUrl = await uploadOnFirebaseStorageBucket(profilePictureLocalPath, '/userProfilePicture/${username}')
+    const profilePictureUrl = await uploadOnFirebaseStorageBucket(profilePictureLocalPath, `/userProfilePicture/${username}`)
 
-    if (!profilePicture) {
+    if (!profilePictureUrl) {
         throw new ApiError(500, "Error occurred while uploading profile picture")
     }
-    let user;
-    try {
-        user = await User.create(
-            {
-                fullName, 
-                username: username.toLowerCase(), 
-                email, 
-                password, 
-                profilePicture: profilePictureUrl || ""
-            }
-        )
-    } catch (error) {
-          // If user creation fails, you might want to delete the uploaded image
-          deleteFromFirebaseStorageBucket('/userProfilePicture', username)
+    
+    const user = await User.create(
+        {
+            fullName, 
+            username: username.toLowerCase(), 
+            email, 
+            password, 
+            profilePicture: profilePictureUrl || "", 
+            address, 
+            contactNumber
+        }
+    )
+    if (!user) {
+        await deleteFromFirebaseStorageBucket('/userProfilePicture', username)
     }
-
+    console.log(user);
     const createdUser = await User.findById(user._id).select("-password -refreshToken")
     if (!createdUser) {
         throw new ApiError(500, "Error occurred while creating user")
@@ -100,7 +103,8 @@ const loginUser = asyncHandler(async (req,res, next) => {
     // send cookies
     // return response to the frontend
     const {username, email, password} = req.body
-    if (!username && !email) {
+    console.log(req.body);
+    if (!username || !email) {
         throw new ApiError(400, "Please enter username and password")
     }
     const user = await User.findOne(
@@ -111,7 +115,7 @@ const loginUser = asyncHandler(async (req,res, next) => {
             ]
         }
     )
-
+    console.log(user)
     if (!user) {
         throw new ApiError(400, "User DNE")
     }
@@ -122,13 +126,13 @@ const loginUser = asyncHandler(async (req,res, next) => {
         throw new ApiError(400, "Invalid credentials")
     }
 
-    const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id)
+    const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user._id)
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
-
+    console.log(refreshToken);
     const cookieOptions = {
         httpOnly: true, 
-        secure: false,
+        secure: true,
         expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     }
     res.status(200)
@@ -304,3 +308,14 @@ const updateProfilePicture = asyncHandler(async(req,res, next) => {
         )
     )
 })
+
+export {
+    registerUser, 
+    loginUser, 
+    logoutUser, 
+    refreshAccessToken, 
+    changeCurrentPassword, 
+    getCurrentUser, 
+    updateAccountDetails, 
+    updateProfilePicture
+}

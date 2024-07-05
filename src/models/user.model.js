@@ -36,7 +36,7 @@ const userSchema = new Schema(
         }, 
         contactNumber: {
             type: String, 
-            required: [true, 'Please enter your contact number'],
+            // required: [true, 'Please enter your contact number'],
             trim: true
         }, 
         profilePicture: {
@@ -48,7 +48,7 @@ const userSchema = new Schema(
         },
         address: {
             type: String, 
-            required: [true, 'Please enter your address'], 
+            // required: [true, 'Please enter your address'], 
             trim: true
         },
         cart: [
@@ -62,7 +62,10 @@ const userSchema = new Schema(
                 type: Schema.Types.ObjectId, 
                 ref: 'Product'
             }
-        ]
+        ], 
+        refreshToken: {
+            type: String,
+        }
     }
 )
 
