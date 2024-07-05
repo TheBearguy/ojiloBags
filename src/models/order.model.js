@@ -1,101 +1,104 @@
 import { Schema, mongo } from "mongoose";
 import mongoose from "mongoose";
 
-const orderItemSchema = new Schema({
-    productId: {
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: "Product"
-    }, 
-    qty: {
-        type: Number, 
-        required: [true, "Please enter the quantity of the item"]
-    }, 
-    
-});
-
-const paymentSchema = new Schema({
-    id: {
-        type: String, 
-        required: true
+const ShippingSchema = {
+    address: {
+      type: String,
+      required: [true, "Please add a address"],
     },
-    status: {
-        type: String, 
-        required: true, 
-        enum: ["pending", "completed", "failed"]  // Example enum
-    }, 
+    city: {
+      type: String,
+      required: [true, "Please add a city name"],
+    },
+    postalCode: {
+      type: Number,
+      required: [true, "Please add a postal code"],
+    },
+    country: {
+      type: String,
+      required: [true, "Please add a address"],
+    },
+  };
+  
+  const PaymentSchema = {
     paymentMethod: {
-        type: String, 
-        required: [true, "Please select a payment method"], 
-        enum: ["credit_card", "paypal", "bank_transfer"]  // Example enum
-    }, 
+      type: String,
+      required: [true, "Please add a payment method"],
+    },
+  };
+  
+  const orderItemSchema = new mongoose.Schema({
+    productName: {
+      type: String,
+      required: [true, "Please add a product name"],
+    },
+    qty: {
+      type: Number,
+      required: [true, "Please add a product quantity"],
+    },
+    productImage: {
+      type: String,
+      required: [true, "Please add a product image"],
+    },
+    price: {
+      type: String,
+      required: [true, "Please add a product price"],
+    },
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+  });
+  
+  const orderSchema = new mongoose.Schema({
+    orderItems: [orderItemSchema],
+    shipping: ShippingSchema,
+    payment: PaymentSchema,
+    itemsPrice: {
+      type: Number,
+      required: [true, "Please add a Items price"],
+    },
+    taxPrice: {
+      type: Number,
+      required: [true, "Please add a tax price"],
+    },
+    shippingPrice: {
+      type: Number,
+      required: [true, "Please add a shipping price"],
+    },
+    totalPrice: {
+      type: Number,
+      required: [true, "Please add a total price"],
+    },
     isPaid: {
-        type: Boolean, 
-        default: false
+      type: Boolean,
+      default: false,
     },
     paidAt: {
-        type: Date, 
-        default: Date.now, 
-    }, 
-
-})
-
-const shippingSchema = new Schema({
-    address: {
-        type: String, 
-        require: [true, "Please enter the local address"]
-    }, 
-    city: {
-        type: String, 
-        required: [true, "Please enter teh city"]
-    }, 
-    country: {
-        type: String, 
-        required: [true, "enter the country"]
+      type: Date,
     },
-    pincode: {
-        type: String, 
-        required: [true, "enter the pincode"]
-    }, 
     isDelivered: {
-        type: Boolean, 
-        default: false
-    }, 
-    deliveredAt: {
-        type: Date, 
-    }, 
-
-})
-
-const orderSchema = new Schema({
-    
-    user: {
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: "User", 
-        required: true
+      type: Boolean,
+      default: false,
     },
-    orderItems: [orderItemSchema],  
-    payment: paymentSchema, 
-    shipping: shippingSchema,
-    itemsPrice: {
-        type: Number, 
-        required: [true, "Pleasea enter the sum of prices of all the items "]
-    }, 
-    taxPrice: {
-        type: Number, 
-        required: [true, "Pleasea enter the taxes "]        
-    }, 
-    shippingPrice: {
-        type: Number, 
-        required: [true, "Pleasea enter the shipping price "]
-    }, 
-    totalPrice: {
-        type: Number, 
-        required: [true, "Pleasea enter the total price to be paid"]
-    }, 
+    paymentResult: {
+      id: { type: String },
+      status: { type: String },
+      update_time: { type: String },
+      email_address: { type: String },
+    },
+    deliveredAt: {
+      type: Date,
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     createdAt: {
-        type: Date, 
-        default: Date.now
-    }
-})
-
+      type: Date,
+      default: Date.now,
+    },
+  });
 export const Order = mongoose.model("Order", orderSchema)
