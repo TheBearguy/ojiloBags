@@ -150,3 +150,12 @@ const getReviews = asyncHandler(async (req, res, next) => {
       .status(204)
       .send({ status: "success", message: "Review Deleted Successfully" });
   });
+
+export {
+    getReviews,
+    getReview,
+    createReview,
+    updateReview,
+    updateRating,
+    deleteReview,
+  }
