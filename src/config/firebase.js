@@ -29,9 +29,14 @@ const uploadOnFirebaseStorageBucket = async (localFilePath, firebaseStorageBucke
     
         // get the firebase url of the image
         // response.url or signedUrl
+        const downloadUrl = await response[0].getSignedUrl({
+            action: 'read',
+            expires: '03-09-2491'
+        })
+        console.log("File uploaded successfully, download url: ", downloadUrl[0]);
     
         await fs.unlinkSync(localFilePath);
-        return response;
+        return downloadUrl[0];
     } catch (error) {
         console.log("Error while uploading image on firebase: ", error.message);
         fs.unlinkSync(localFilePath) // remove the file from the local storage as the upload got failed
@@ -40,17 +45,18 @@ const uploadOnFirebaseStorageBucket = async (localFilePath, firebaseStorageBucke
 
 }
 
-const deleteFromFirebaseStorageBucket = async (firebaseStorageBucketFolderPath, imageId) => {
+const deleteFromFirebaseStorageBucket = async (firebaseStorageBucketFolderPath, username) => {
     try {
         if (!firebaseStorageBucketFolderPath) {
             throw new ApiError(400, "Invalid Url of firebase asset")
         }
-        if (!imageId) {
-            throw new ApiError(400, "ImageId not found, therefore could not be deleted")
+        if (!username) {
+            throw new ApiError(400, "username not found, therefore could not be deleted")
         }
         const response = await bucket.deleteFiles({
-            prefix: `${firebaseStorageBucketFolderPath}/${imageId}`
+            prefix: `${firebaseStorageBucketFolderPath}/${username}`
         })
+        console.log("Files deleted successfully");
         console.log(response);
         return response;
     } catch (error) {
